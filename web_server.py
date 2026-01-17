@@ -33,10 +33,25 @@ def login_worker_thread(user_agent):
     handler = LoginHandler(headless=True)
     
     def on_qr_code(page):
+        log_msg("QR code detected.")
         # Screenshot to static folder
         qr_filename = f"qr_{int(time.time())}.png"
         qr_abs_path = os.path.join(app.root_path, "static", qr_filename)
-        page.screenshot(path=qr_abs_path)
+        
+        # Try to screenshot just the QR code or the login container
+        try:
+            # Try specific QR code image first
+            page.locator("img[src*='qr']").first.screenshot(path=qr_abs_path)
+            log_msg("QR code screenshot saved.")
+        except:
+            try:
+                # Fallback to login container
+                page.locator(".login-container").first.screenshot(path=qr_abs_path)
+                log_msg("Login container screenshot saved.")
+            except:
+                # Fallback to full page
+                page.screenshot(path=qr_abs_path)
+                log_msg("Full page screenshot saved.")
         
         login_session["qr_path"] = f"/static/{qr_filename}"
         login_session["status"] = "waiting_scan"

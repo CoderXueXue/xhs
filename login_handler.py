@@ -46,6 +46,7 @@ class LoginHandler:
                 
                 log("Opening Xiaohongshu...")
                 page.goto("https://www.xiaohongshu.com")
+                log("Page loaded.")
                 
                 # Setup network interception for QR status
                 qr_status = {"code": -1}
