@@ -44,9 +44,8 @@
         {% if result.success %}
             <h3 style="color: green;">Success!</h3>
             <p><strong>Account Used:</strong> {{ result.account_used }}</p>
-            <p><strong>Title:</strong> {{ result.data.title }}</p>
-            <p><strong>Content:</strong></p>
-            <pre>{{ result.data.content }}</pre>
+            <p><strong>Full JSON Data:</strong></p>
+            <pre style="max-height: 600px; overflow: auto;">{{ result.data | tojson(indent=2) }}</pre>
         {% else %}
             <h3 class="error">Failed</h3>
             <p><strong>Error:</strong> {{ result.error }}</p>

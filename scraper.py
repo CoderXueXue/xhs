@@ -62,31 +62,29 @@ class XHSScraper:
 
                     # Check for login redirect
                     if "login" in page.url:
+                        print(f"[Scraper] Detected login redirect. URL: {page.url}")
                         self._save_debug_screenshot(page, "login_redirect")
                         result["error"] = "Session expired (Redirected to login)"
                         browser.close()
                         return result
 
-                    # Extract Data
-                    data = {}
-                    data["title"] = page.title()
-                    data["url"] = url
-                    
-                    # Content extraction
+                    # Extract Data from __INITIAL_STATE__
                     try:
-                        content_selector = ".note-content" 
-                        if page.locator(content_selector).count() > 0:
-                            data["content"] = page.locator(content_selector).inner_text()
+                        # Get the global state object
+                        initial_state = page.evaluate("() => window.__INITIAL_STATE__")
+                        
+                        if initial_state:
+                            # User requested full raw JSON without parsing
+                            result["data"] = initial_state
+                            result["data"]["_scraped_url"] = url # Inject metadata
+                            result["success"] = True
                         else:
-                            data["content"] = page.locator('meta[name="description"]').get_attribute("content")
+                            result["error"] = "window.__INITIAL_STATE__ is empty"
+                            self._save_debug_screenshot(page, "empty_state")
+                            
                     except Exception as e:
-                        data["content"] = f"Extraction error: {str(e)}"
+                        result["error"] = f"Extraction error: {str(e)}"
                         self._save_debug_screenshot(page, "extraction_error")
-                    
-                    # Additional fields can be added here (likes, date, etc.)
-                    
-                    result["data"] = data
-                    result["success"] = True
                 
                 except Exception as e:
                     self._save_debug_screenshot(page, "scrape_error")
@@ -96,5 +94,6 @@ class XHSScraper:
                 
         except Exception as e:
             result["error"] = str(e)
-            
+        
+        print(f"[Scraper] Scrape result: {result}")
         return result
