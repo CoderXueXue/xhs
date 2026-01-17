@@ -1,14 +1,17 @@
 import json
 import time
 import os
+import random
 from playwright.sync_api import sync_playwright
+from account_manager import AccountManager
 
-STATE_FILE = "state.json"
 LINKS_FILE = "links.txt"
-RESULTS_FILE = "results.jsonl"
-LOG_FILE = "scraper.log"
+RESULTS_FILE = os.path.join("data", "results.jsonl")
+LOG_FILE = os.path.join("data", "scraper.log")
 
 def log(message):
+    if not os.path.exists("data"):
+        os.makedirs("data")
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     entry = f"[{timestamp}] {message}"
     print(entry)
@@ -16,8 +19,20 @@ def log(message):
         f.write(entry + "\n")
 
 def run():
-    if not os.path.exists(STATE_FILE):
-        log(f"Error: {STATE_FILE} not found. Please run login.py first.")
+    manager = AccountManager()
+    
+    # Select an account
+    account = manager.get_random_active_account()
+    if not account:
+        log("Error: No active accounts found. Please add an account via the Web UI.")
+        return
+
+    log(f"Using account: {account['nickname']} (ID: {account['id']})")
+    state_file = account['state_file']
+    user_agent = account['user_agent']
+
+    if not os.path.exists(state_file):
+        log(f"Error: State file {state_file} missing.")
         return
 
     if not os.path.exists(LINKS_FILE):
@@ -33,22 +48,17 @@ def run():
 
     with sync_playwright() as p:
         # Use stealth args to minimize detection
-        # Note: On Windows headless=True is the standard headless mode. 
-        # Xvfb is Linux only.
         browser = p.chromium.launch(
             headless=True, 
             args=['--no-sandbox', '--disable-blink-features=AutomationControlled']
         )
         
-        # User Agent is critical for headless mode
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        
         context = browser.new_context(
-            storage_state=STATE_FILE,
+            storage_state=state_file,
             user_agent=user_agent
         )
         
-        # Add stealth scripts if needed (basic evasion)
+        # Add stealth scripts
         context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
         page = context.new_page()
@@ -62,14 +72,12 @@ def run():
                 # Basic stability check
                 if "login" in page.url:
                     log("Warning: Redirected to login page. Session might be expired.")
+                    # Optionally mark account as invalid here
                     break
                 
                 # Extract data
-                # Priority 1: Title
                 title = page.title()
                 
-                # Priority 2: Description/Content (Simple DOM approach for now)
-                # Trying common XHS selectors (these might change, so we use generic fallbacks)
                 try:
                     # Attempt to get the note content
                     content_selector = ".note-content" # Hypothetical
@@ -82,6 +90,7 @@ def run():
                     content = f"Extraction failed: {str(e)}"
 
                 result = {
+                    "account_used": account['nickname'],
                     "url": link,
                     "title": title,
                     "content": content,
@@ -95,7 +104,7 @@ def run():
                 log(f"Successfully scraped: {title}")
                 
                 # Natural delay
-                time.sleep(2)
+                time.sleep(random.uniform(2, 5))
 
             except Exception as e:
                 log(f"Error processing {link}: {str(e)}")

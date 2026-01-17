@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XHS Account Manager</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .account-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .status-active { color: green; font-weight: bold; }
+        .btn { padding: 8px 15px; text-decoration: none; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-add { background-color: #ff2442; }
+        .btn-del { background-color: #999; font-size: 0.8em; }
+        .ua-text { font-size: 0.8em; color: #666; display: block; margin-top: 5px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <h1>Xiaohongshu Accounts</h1>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="/add" class="btn btn-add">+ Add New Account</a>
+    </div>
+
+    <div id="account-list">
+        {% for account in accounts %}
+        <div class="account-card">
+            <div>
+                <strong>{{ account.nickname }}</strong>
+                <span class="ua-text">ID: {{ account.id }}</span>
+                <span class="ua-text" title="{{ account.user_agent }}">UA: {{ account.user_agent }}</span>
+            </div>
+            <div>
+                <span class="status-active">Active</span>
+                <a href="/delete/{{ account.id }}" class="btn btn-del" onclick="return confirm('Delete this account?')">Delete</a>
+            </div>
+        </div>
+        {% else %}
+        <p>No accounts added yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
